@@ -1,0 +1,36 @@
+name: update-data
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'   # UTC 09:00 = 北京 17:00，A股收盘后
+  workflow_dispatch:          # 手动触发按钮（Actions 页 → Run workflow）
+
+permissions:
+  contents: write             # 允许把新数据提交回仓库
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 抓取最新数据并生成 treemap.js
+        run: |
+          bash refresh_fixtures.sh
+          python3 make_data.py
+
+      - name: 数据有变化才提交
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -z "$(git status --porcelain data)" ]; then
+            echo "数据无变化，跳过提交"
+          else
+            git add data/
+            git commit -m "data: 自动更新 $(date -u +%F)"
+            git push
+          fi

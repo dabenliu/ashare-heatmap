@@ -1,0 +1,133 @@
+/* 大盘云图 · 复刻 — 样式表（抽屉承载全部界面件，画布占满视口） */
+:root {
+  --bg: #10141b;
+  --panel: #151a21;
+  --border: #2a3341;
+  --text: #e6ebf2;
+  --muted: #8b96a5;
+  --brand: #f53639;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { display: flex; overflow: hidden; background: var(--bg); color: var(--text); font: 13px/1.5 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+
+/* ---------- 抽屉（推挤式：与云图共享窗口宽度，展开时云图随之变窄重排） ---------- */
+#drawer {
+  flex-shrink: 0; width: 0; height: 100%; overflow: hidden;
+  transition: width 0.2s ease;
+}
+body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35); }
+.drw-inner {
+  width: 232px; height: 100%; display: flex; flex-direction: column;
+  background: rgba(15, 19, 25, 0.92); border-right: 1px solid rgba(100, 116, 139, 0.5);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  overflow-y: auto;   /* 矮窗口兜底：内容放不下时抽屉整体可滚 */
+}
+
+/* ---------- 画布区（flex 占据抽屉之外的窗口） ---------- */
+#stage { position: relative; overflow: hidden; flex: 1; min-width: 0; height: 100%; }
+#cv { display: block; width: 100%; height: 100%; touch-action: none; cursor: default; }
+#cv.grab { cursor: grab; }
+#cv.grabbing { cursor: grabbing; }
+#cv.pointer { cursor: pointer; }
+
+/* ---------- 左缘侦测带 ---------- */
+#edgeLeft { position: absolute; left: 0; top: 0; bottom: 0; width: 16px; z-index: 44; cursor: pointer; }
+.drw-hd { padding: 12px 14px; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.drw-sec { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.drw-body { flex: 1; overflow-y: auto; min-height: 0; padding: 10px 14px; }
+
+/* 市场切换竖排行（标签多时自身滚动，防止挤压下方控件） */
+#indices { display: flex; flex-direction: column; gap: 2px; max-height: 46vh; overflow-y: auto; }
+.idx {
+  appearance: none; border: 1px solid transparent; background: transparent; color: var(--muted);
+  font: inherit; font-size: 12px; padding: 5px 8px; border-radius: 6px; cursor: pointer;
+  display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: baseline; width: 100%;
+}
+.idx:hover { background: #1d2530; }
+.idx.on { background: #2a3546; border-color: rgba(100, 116, 139, 0.5); }
+.idx .n { color: var(--text); font-weight: 600; white-space: nowrap; }
+.idx .sp { flex: 1; }
+.idx .p, .idx .c { font-variant-numeric: tabular-nums; }
+.idx .c { font-weight: 600; }
+
+/* 控制区 */
+.drw-controls { display: flex; flex-direction: column; gap: 8px; }
+.seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { flex: 1; appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; padding: 5px 0; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.on { background: #232c3a; color: var(--text); }
+.seg button:hover { background: #1d2530; }
+
+/* 摘要区（沉底三模块，间距加大） */
+.drw-summary { display: flex; flex-direction: column; gap: 12px; }
+.legend { display: flex; align-items: center; gap: 6px; }
+.legend .arrow { font-size: 10px; }
+.legend .fall { color: #35d97a; }
+.legend .rise { color: var(--brand); }
+.legend .bar { position: relative; flex: 1; height: 10px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.legend .bar i {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 4px;
+  font-size: 8.5px; font-weight: 600; font-style: normal; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55); pointer-events: none;
+}
+.drw-sub { padding: 8px 8px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); }
+#indices .drw-sub:first-child { padding-top: 0; }
+/* 统计表：圆角外框 + 分割线网格；第 1 行三等分（涨跌家数），第 2 行二等分（成交额/较昨日）
+ * 颜色对齐图例两侧：增量/上涨=红 缩量/下跌=绿 持平=灰 */
+.stat-tbl { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.02); }
+.st-row { display: grid; }
+.st-row.r1 { grid-template-columns: repeat(3, 1fr); }
+.st-row.r2 { grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--border); }
+.st { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 7px 10px; }
+.st-row .st + .st { border-left: 1px solid var(--border); }
+.st i { font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.st b.up { color: #ff6b66; }
+.st b.down { color: #35d97a; }
+.st b.flat { color: var(--muted); }
+.updated { color: var(--muted); font-size: 11px; }
+
+/* ---------- 检视器（dapanyuntu n8 同款：深色个股头部条 + 白底日K区 + 浅灰成分列表） ---------- */
+#tip[hidden] { display: none !important; }
+#tip {
+  position: absolute; z-index: 40;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 0;
+  border: 1px solid rgba(100, 116, 139, 0.8);
+  background: rgba(15, 19, 25, 0.96);
+  color: #f1f5f9;
+  box-shadow: 0 22px 72px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  font-size: 12.5px; line-height: 1.5;
+}
+.insp-hdst { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.15); flex-shrink: 0; }
+.insp-hdst .nm { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: keep-all; font-size: 14px; font-weight: 600; line-height: 1.2; color: #fff; }
+.insp-hdst .spk { height: 32px; width: 108px; object-fit: contain; flex-shrink: 0; mix-blend-mode: screen; }
+.insp-hdst .pv, .insp-hdst .mv, .insp-hdst .pc { font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+.insp-hdst .pv { margin-left: auto; font-size: 13px; font-weight: 600; color: #fff; }
+.insp-hdst .mv { font-size: 12px; font-weight: 400; color: rgba(255, 255, 255, 0.75); }
+.insp-hdst .pc { font-size: 13px; font-weight: 600; color: #fff; }
+.insp-hdst .pinb { flex-shrink: 0; font-size: 10px; font-weight: 500; color: #fff; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 4px; padding: 1px 6px; }
+.insp-kline { display: flex; flex-direction: column; align-items: center; padding: 4px 12px 2px; background: #fff; border-bottom: 1px solid rgba(51, 65, 85, 0.8); flex-shrink: 0; }
+.insp-kline img { width: 88%; height: auto; object-fit: contain; background: #fff; }
+.insp-kline .hint { margin-top: 2px; width: 100%; text-align: left; font-size: 11px; font-weight: 600; color: rgb(71, 85, 105); }
+.insp-board { display: flex; flex-direction: column; min-height: 0; flex: 1; background: #f4f6f7; color: #0f172a; }
+.insp-bd-hd { padding: 4px 12px 6px; border-bottom: 1px solid rgba(203, 213, 225, 0.7); flex-shrink: 0; }
+.insp-bd-hd .r1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: rgb(100, 116, 139); }
+.insp-bd-hd .bn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.insp-bd-hd .bs { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.insp-bd-hd .bs b { font-size: 12px; font-weight: 600; }
+.insp-bd-hd .r2 { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px; }
+.insp-bd-hd .sl { font-size: 10px; font-weight: 500; letter-spacing: 0.06em; color: rgb(100, 116, 139); }
+.insp-bd-hd .ss { border: 0; border-radius: 4px; padding: 2px 6px; font: inherit; font-size: 10px; font-weight: 500; cursor: pointer; background: #fff; color: rgb(71, 85, 105); transition: background 0.15s, color 0.15s; }
+.insp-bd-hd .ss:hover { background: rgba(226, 232, 240, 0.8); }
+.insp-bd-hd .ss.on { background: rgb(30, 41, 59); color: #fff; }
+.insp-list { overflow-y: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
+.insp-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px 64px 80px; gap: 8px; align-items: center; padding: 4px 12px; font-size: 12.5px; border-bottom: 1px solid rgba(203, 213, 225, 0.7); }
+.insp-row .nm { min-width: 0; padding-right: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: keep-all; font-weight: 500; line-height: 1.2; color: #0f172a; }
+.insp-row .spk { width: 56px; height: 18px; object-fit: contain; }
+.insp-row .pr { text-align: right; font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; color: rgb(51, 65, 85); }
+.insp-row .pc { text-align: right; font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.insp-row.active { position: sticky; top: 0; z-index: 1; background: #fff; font-weight: 600; box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08); }
+.insp-row.active .nm { font-weight: 600; color: rgb(15, 23, 42); }
+.insp-empty { flex: 1; display: flex; min-height: 240px; align-items: center; justify-content: center; padding: 24px; text-align: center; font-size: 12px; line-height: 1.6; color: rgb(100, 116, 139); }
