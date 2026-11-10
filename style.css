@@ -31,9 +31,15 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 #cv.grabbing { cursor: grabbing; }
 #cv.pointer { cursor: pointer; }
 
-/* ---------- 左缘侦测带 ---------- */
+/* ---------- 左缘侦测带（触屏设备加宽热区，点边缘即可唤出抽屉） ---------- */
 #edgeLeft { position: absolute; left: 0; top: 0; bottom: 0; width: 16px; z-index: 44; cursor: pointer; }
-.drw-hd { padding: 12px 14px; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+@media (pointer: coarse) { #edgeLeft { width: 28px; } }
+.drw-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.drw-hd button {
+  appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px;
+  padding: 2px 8px; border-radius: 6px; cursor: pointer;
+}
+.drw-hd button:hover { background: #1d2530; color: var(--text); }
 .drw-sec { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .drw-body { flex: 1; overflow-y: auto; min-height: 0; padding: 10px 14px; }
 

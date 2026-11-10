@@ -1104,6 +1104,7 @@ function resetView() {   // Esc 触发（重置/全屏按钮已按需求移除�
   setView({ scale: 1, x: 0, y: 0 });
   buildLayout(); render(); hideTip();
 }
+document.getElementById('drawerClose').addEventListener('click', () => setLeftEdge(false));   // 抽屉头部 ✕：触屏无键盘也能收
 window.addEventListener('keydown', e => {
   const tag = e.target && e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -1260,7 +1261,11 @@ document.documentElement.addEventListener('mouseleave', e => {
 });
 /* ================= 启动 ================= */
 document.addEventListener('pointerdown', e => {   // 画布与检视器之外的任何按下（鼠标/触摸通吃）：收起抽屉与检视器
-  if (e.target === cv || tip.contains(e.target)) return;
+  if (tip.contains(e.target)) return;
+  if (e.target === cv) {   // 点画布=收抽屉：桌面鼠标移入画布早已先收（无行为变化），触屏无键盘靠这个收
+    if (leftEdgeActive) setLeftEdge(false);
+    return;
+  }
   if (drawerEl.contains(e.target) || e.target === edgeEl) return;   // 抽屉/左缘带内按下：正在操作抽屉，收起会把本次点击掐断
   setLeftEdge(false);
   if (state.inspPinned) return;
@@ -1292,7 +1297,9 @@ buildLegend();
 renderIndices();   // 市场标签先出（报价随后由 fetchIndices 补上）
 updateStatus();
 resize();
-document.body.classList.add('drawer-open');   // 抽屉默认展开（鼠标移入画布即收起，贴左缘再呼出）
-leftEdgeActive = true;
+/* 抽屉初始态：桌面（精确指针+宽屏）默认展开，触屏/窄屏（手机，无键盘收不了）默认收起 */
+const touchLike = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 700;
+document.body.classList.toggle('drawer-open', !touchLike);
+leftEdgeActive = !touchLike;
 startLive();
 })();
