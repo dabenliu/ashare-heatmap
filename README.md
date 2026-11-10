@@ -29,6 +29,8 @@ python3 make_data.py      # 重新生成 data/treemap.js（主树 + markets 子�
 
 ## 上 GitHub（Pages 托管 + 每日自动更新）
 
+**线上地址：https://dabenliu.github.io/ashare-heatmap/** （工作日 17:00 自动换新数据）
+
 1. 新建 **public** 仓库，推整个目录（`backup-*/` 已被 .gitignore 排除）
 2. Settings → Pages → Source 选分支根目录 → 得到 `https://用户名.github.io/仓库名/`
 3. `.github/workflows/update-data.yml` 已内置：**工作日北京时间 17:00**（UTC 09:00）自动跑 `refresh_fixtures.sh` + `make_data.py`，数据有变化才提交回仓库，Pages 随之重新发布；Actions 页有手动触发按钮
