@@ -790,8 +790,7 @@ function inspStockHeadHTML(st) {
     `<span class="pv">${fmtPrice(st.price)}</span>` +
     `<span class="mv">${fmtAmount(st.totalMarketCap)}</span>` +
     `<span class="pc">${fmtPctLong(st.changePct ?? 0)}</span>` +
-    (state.inspPinned ? '<span class="pinb">已固定 · Esc解除</span>' : '') +
-    `<button type="button" class="insp-x" aria-label="关闭弹窗">✕</button>` +
+    (state.inspPinned ? '<button type="button" class="pinb" title="点击解除固定">已固定 · 点击解除</button>' : '') +
     `</div>`;
 }
 function inspKlineHTML(st) {
@@ -1326,7 +1325,7 @@ document.addEventListener('pointerdown', e => {   // 画布与检视器之外的
   clearHover();
 });
 tip.addEventListener('click', e => {
-  if (e.target.closest('.insp-x')) {   // 弹窗头部 ✕（仅触屏设备显示）：解除固定并隐藏
+  if (e.target.closest('.pinb')) {   // 「已固定」徽标点击 = 解除固定并隐藏（触屏与桌面通用）
     state.inspPinned = false; state.inspCtxKey = ''; hideTip();
     return;
   }
