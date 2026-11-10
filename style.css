@@ -128,6 +128,14 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .insp-hdst .mv { font-size: 12px; font-weight: 400; color: rgba(255, 255, 255, 0.75); }
 .insp-hdst .pc { font-size: 13px; font-weight: 600; color: #fff; }
 .insp-hdst .pinb { flex-shrink: 0; font-size: 10px; font-weight: 500; color: #fff; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 4px; padding: 1px 6px; }
+/* 弹窗关闭按钮：仅触屏设备显示（桌面 hover 即消失，视觉与交互保持不变） */
+.insp-hdst .insp-x {
+  appearance: none; border: 0; background: rgba(0, 0, 0, 0.22); color: #fff; font: inherit; font-size: 12px;
+  width: 20px; height: 20px; line-height: 1; border-radius: 5px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.insp-hdst .insp-x:hover { background: rgba(0, 0, 0, 0.4); }
+@media (pointer: fine) { .insp-hdst .insp-x { display: none; } }
 .insp-kline { display: flex; flex-direction: column; align-items: center; padding: 4px 12px 2px; background: #fff; border-bottom: 1px solid rgba(51, 65, 85, 0.8); flex-shrink: 0; }
 .insp-kline img { width: 88%; height: auto; object-fit: contain; background: #fff; }
 .insp-kline .hint { margin-top: 2px; width: 100%; text-align: left; font-size: 11px; font-weight: 600; color: rgb(71, 85, 105); }

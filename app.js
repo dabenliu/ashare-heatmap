@@ -717,9 +717,15 @@ stage.addEventListener('touchend', e => {
     const r = cv.getBoundingClientRect();
     const w = screenToWorld(touch.sx - r.left, touch.sy - r.top);
     const title = hitTitle(w.x, w.y);
-    if (title) toggleFocus(title.boardName);
+    if (title) { toggleFocus(title.boardName); }
     else {
-      if (hitStock(w.x, w.y)) toggleInspPin();
+      const rect = hitStock(w.x, w.y);
+      if (rect) {
+        const g = findGroupFor(rect.stock);
+        if (g) { state.inspPinned = true; showInspector(g, rect); }   // 点个股=固定显示；已固定时=切换到该股
+      } else if (state.inspPinned) {
+        state.inspPinned = false; state.inspCtxKey = ''; hideTip();   // 点画布空白=解除收起（触屏无键盘的主要退出方式）
+      }
     }
   }
   if (e.touches.length === 1 && touch.mode === 'pinch') {
@@ -785,6 +791,7 @@ function inspStockHeadHTML(st) {
     `<span class="mv">${fmtAmount(st.totalMarketCap)}</span>` +
     `<span class="pc">${fmtPctLong(st.changePct ?? 0)}</span>` +
     (state.inspPinned ? '<span class="pinb">已固定 · Esc解除</span>' : '') +
+    `<button type="button" class="insp-x" aria-label="关闭弹窗">✕</button>` +
     `</div>`;
 }
 function inspKlineHTML(st) {
@@ -1317,6 +1324,10 @@ document.addEventListener('pointerdown', e => {   // 画布与检视器之外的
   clearHover();
 });
 tip.addEventListener('click', e => {
+  if (e.target.closest('.insp-x')) {   // 弹窗头部 ✕（仅触屏设备显示）：解除固定并隐藏
+    state.inspPinned = false; state.inspCtxKey = ''; hideTip();
+    return;
+  }
   const sb = e.target.closest('.ss');
   if (sb && sb.dataset.sort != null) { state.inspSort = +sb.dataset.sort; rebuildInspector(); return; }
   if (e.target.closest('.insp-pin')) { toggleInspPin(); return; }
