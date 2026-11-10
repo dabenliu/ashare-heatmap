@@ -1270,8 +1270,10 @@ function flowRowHTML(r) {
   const score = clamp((r.pct ?? 0) / 10, -1, 1);
   const col = Math.abs(r.pct ?? 0) < 0.05 ? 'var(--muted)' : bandColorOf(score);
   const sign = r.amt > 0 ? '+' : (r.amt < 0 ? '-' : '');
+  const y = Math.abs(r.amt) / 1e8;                    // 单位在列头(亿)，行内只留紧凑数字
+  const num = y >= 100 ? Math.round(y) : y.toFixed(1);
   return `<div class="flow-row"><span class="fn">${escapeHtml(r.name)}</span>` +
-    `<b class="fv" style="color:${col}">${sign}${fmtAmount(Math.abs(r.amt))}</b></div>`;
+    `<b class="fv" style="color:${col}">${sign}${num}</b></div>`;
 }
 function renderFlow() {
   if (!flowData) return;
