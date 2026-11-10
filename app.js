@@ -546,6 +546,7 @@ function hitTitle(x, y) {   // 先板块标题带，再子板块标题带（原�
 /* ================= 交互 ================= */
 const drag = { active: false, moved: false, startX: 0, startY: 0, px: 0, py: 0 };
 let clickTimer = null;
+let suppressClickUntil = 0;   // 触屏点按已处理标题钻取后，抑制合成 click/dblclick 的二次 toggleFocus（否则手机聚焦瞬间弹回）
 
 function canvasPos(e) {
   const r = cv.getBoundingClientRect();
@@ -634,6 +635,7 @@ function handleHover(e) {
 }
 
 cv.addEventListener('click', e => {
+  if (Date.now() < suppressClickUntil) { clearTimeout(clickTimer); clickTimer = null; return; }
   if (drag.moved) return;
   const { mx, my } = canvasPos(e);
   const w = screenToWorld(mx, my);
@@ -647,6 +649,7 @@ cv.addEventListener('click', e => {
 });
 
 cv.addEventListener('dblclick', e => {
+  if (Date.now() < suppressClickUntil) { clearTimeout(clickTimer); clickTimer = null; return; }
   clearTimeout(clickTimer); clickTimer = null;
   const { mx, my } = canvasPos(e);
   const w = screenToWorld(mx, my);
@@ -718,7 +721,7 @@ stage.addEventListener('touchend', e => {
     const r = cv.getBoundingClientRect();
     const w = screenToWorld(touch.sx - r.left, touch.sy - r.top);
     const title = hitTitle(w.x, w.y);
-    if (title) { toggleFocus(title.boardName); }
+    if (title) { toggleFocus(title.boardName); suppressClickUntil = Date.now() + 450; }   // 钻取已在 touchend 完成，抑制合成点击的二次切换
     else {
       const rect = hitStock(w.x, w.y);
       if (rect) {
