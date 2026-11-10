@@ -1,7 +1,7 @@
-/* 大盘云图 · 复刻样式研究
- * 渲染参数全部来自对 dapanyuntu.com 构建产物的逆向（2026-11-09），代码为独立重写。
+/* A股热力图（大盘云图 · 样式研究）
+ * 渲染参数来自对 dapanyuntu.com 构建产物的逆向分析，代码为独立重写。
  * 画布只画地图区：三层嵌套二分 treemap（板块 → 子板块 → 个股），
- * 5 色标连续色阶（γ0.82），四级自适应标签，视图缩放平移 + 命中测试。
+ * score 归一化色阶（涨跌幅/涨跌停限额），四级自适应标签，视图缩放平移 + 命中测试。
  */
 (() => {
 'use strict';
@@ -162,7 +162,7 @@ const tip = document.getElementById('tip');
 
 const view = { scale: 1, x: 0, y: 0 };            // 视图态：缩放 1~3 + 平移
 const state = {
-  market: 'all',            // 当前市场视图（MARKETS.id）：all/sh/sz/cyb/kcb/bj
+  market: 'all',            // 当前市场视图（MARKETS.id）：全部/上证/深证/沪深300/中证A500/创业板/科创板/北交所/ETF/港股
   sizeMode: 'value',        // value=流通市值(默认) | totalMarketCap | turnover
   focus: null,              // 聚焦的板块名（null=全图）
   hoverStock: null,         // 悬停个股矩形 {stock,x,y,w,h,boardName,subBoardName}
@@ -656,10 +656,13 @@ cv.addEventListener('dblclick', e => {
 });
 
 
-/* 触控：双指捏合缩放（锚定捏合中心）+ 单指拖拽/点按 */
+/* 触控：双指捏合缩放（锚定捏合中心）+ 单指拖拽/点按 + 左缘右滑唤出抽屉。
+ * 监听挂在 stage（cv 与 edgeLeft 的共同父级）：左缘 16px 侦测带浮在画布上方，
+ * 挂 cv 收不到它的触摸——左缘热区手势失效的根因。检视器 tip 的触摸直接忽略。 */
 const touch = { mode: 'idle', startTs: 0, sx: 0, sy: 0, lx: 0, ly: 0, startDist: 1, startScale: 1, wx: 0, wy: 0, cx: 0, cy: 0 };
 const touchDist = t => t.length < 2 ? 0 : Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-cv.addEventListener('touchstart', e => {
+stage.addEventListener('touchstart', e => {
+  if (e.target !== cv && e.target !== edgeEl) return;   // 检视器等浮层上的触摸不参与画布手势
   const r = cv.getBoundingClientRect();
   if (e.touches.length === 2) {
     e.preventDefault();
@@ -672,11 +675,15 @@ cv.addEventListener('touchstart', e => {
     touch.wy = (touch.cy - view.y) / view.scale;
   } else if (e.touches.length === 1) {
     const t = e.touches[0];
-    touch.mode = 'tap'; touch.startTs = Date.now();
-    touch.sx = touch.lx = t.clientX; touch.sy = touch.ly = t.clientY;
+    if (t.clientX < 24) {   // 屏幕左缘起手：从左向右滑 = 唤出抽屉（触屏手势，不进平移/点按逻辑）
+      touch.mode = 'edge'; touch.sx = t.clientX; touch.sy = t.clientY;
+    } else {
+      touch.mode = 'tap'; touch.startTs = Date.now();
+      touch.sx = touch.lx = t.clientX; touch.sy = touch.ly = t.clientY;
+    }
   }
 }, { passive: false });
-cv.addEventListener('touchmove', e => {
+stage.addEventListener('touchmove', e => {
   if (touch.mode === 'pinch' && e.touches.length >= 2) {
     e.preventDefault();
     const d = touchDist(e.touches);
@@ -684,8 +691,15 @@ cv.addEventListener('touchmove', e => {
     const scale = clamp(touch.startScale * d / touch.startDist, 1, 3);
     setView({ scale, x: touch.cx - touch.wx * scale, y: touch.cy - touch.wy * scale });
     render();
-  } else if (e.touches.length === 1 && (touch.mode === 'tap' || touch.mode === 'pan')) {
+  } else if (e.touches.length === 1 && (touch.mode === 'tap' || touch.mode === 'pan' || touch.mode === 'edge')) {
     const t = e.touches[0];
+    if (touch.mode === 'edge') {   // 横滑 ≥36px 且基本水平 → 唤出抽屉；反向/纵向则放弃（不触发画布平移）
+      e.preventDefault();
+      const dx = t.clientX - touch.sx, dy = Math.abs(t.clientY - touch.sy);
+      if (dx > 36 && dy < 60) { setLeftEdge(true); touch.mode = 'idle'; }
+      else if (dx < -6 || dy > 60) touch.mode = 'idle';
+      return;
+    }
     if (touch.mode === 'tap' && Math.hypot(t.clientX - touch.sx, t.clientY - touch.sy) > 6) touch.mode = 'pan';
     if (touch.mode !== 'pan') return;
     e.preventDefault();
@@ -695,7 +709,7 @@ cv.addEventListener('touchmove', e => {
     render();
   }
 }, { passive: false });
-cv.addEventListener('touchend', e => {
+stage.addEventListener('touchend', e => {
   if (touch.mode === 'tap' && Date.now() - touch.startTs < 350) {
     const r = cv.getBoundingClientRect();
     const w = screenToWorld(touch.sx - r.left, touch.sy - r.top);
@@ -711,7 +725,7 @@ cv.addEventListener('touchend', e => {
   }
   if (e.touches.length === 0) touch.mode = 'idle';
 });
-cv.addEventListener('touchcancel', () => { touch.mode = 'idle'; clearHover(); });
+stage.addEventListener('touchcancel', () => { touch.mode = 'idle'; clearHover(); });
 
 function toggleFocus(boardName) {
   state.focus = state.focus === boardName ? null : boardName;
@@ -738,8 +752,7 @@ const SORT_KEYS = [
 ];
 let lastInsp = null;   // {g, active}
 
-function pctColorOf(p) { return Math.abs(p ?? 0) < FLAT_EPS ? 'var(--muted)' : p > 0 ? '#ff6b66' : '#35d97a'; }
-function strongColorOf(p) {   // 原版 r4 strong 档：端点原色
+function strongColorOf(p) {   // 检视器强色：平盘灰 / 涨红 / 跌绿（端点原色）
   if (Math.abs(p ?? 0) < FLAT_EPS) return 'rgb(65,69,84)';
   return p > 0 ? 'rgb(245,54,57)' : 'rgb(0,214,65)';
 }
@@ -762,7 +775,7 @@ function sinaKline(code) {   // 新浪日K图：002466.SZ → sz002466
 
 function inspStockHeadHTML(st) {
   const pic = emPic(st.code, 'RJY');
-    return `<div class="insp-hdst" style="background:${heatColor(st.changePct ?? 0, stockLimit(st))}">` +
+  return `<div class="insp-hdst" style="background:${heatColor(st.changePct ?? 0, stockLimit(st))}">` +
     `<span class="nm">${escapeHtml(st.name)}</span>` +
     (pic ? `<img class="spk" referrerpolicy="no-referrer" alt="" src="${pic}">` : '') +
     `<span class="pv">${fmtPrice(st.price)}</span>` +
@@ -1142,13 +1155,12 @@ window.addEventListener('keydown', e => {
   if (used) { e.preventDefault(); list.scrollTo({ top: clamp(top, 0, list.scrollHeight), behavior: 'smooth' }); }
 });
 
-/* ---- 顶栏市场切换条（腾讯批量 ×1 拿指数报价；点击切换云图市场） ----
+/* ---- 市场切换条（腾讯批量 ×1 拿指数报价；点击切换云图市场） ----
  * 两类云图：
  *  rule 型：从全 A 树按 exchange/代码段前端过滤（全部/上证/深证/创业板/科创板/北交所）；
- *  tree 型：独立树（DATA.markets[id]，refresh_fixtures.sh 抓自原站 API/OSS）——
+ *  tree 型：独立树（DATA.markets[id]，refresh_fixtures.sh 抓自原站 API）——
  *           沪深300/中证A500 为成分指数云图，ETF/港股为独立市场云图；
- *           fixture 缺失时对应标签自动隐藏（renderIndices 过滤）。
- * 轮询节奏与请求数不变：行情匹配改为遍历全部树，无额外请求。 */
+ *           fixture 缺失时对应标签自动隐藏（renderIndices 过滤）。 */
 const MARKETS = [
   { id: 'all',   label: '全部',     idx: 'sh000985', rule: null },                          // 中证全指
   { id: 'sh',    label: '上证',     idx: 'sh000001', rule: c => c.exchange === 'SH' },
@@ -1184,25 +1196,19 @@ async function fetchIndices() {
       const prev = parseFloat(f[4]);
       if (isFinite(price) && isFinite(prev) && prev > 0) pct = (price - prev) / prev * 100;
     }
-    map[m[2]] = { name: f[1], price: isFinite(price) ? price : null, pct: isFinite(pct) ? pct : null };
+    map[m[2]] = { price: isFinite(price) ? price : null, pct: isFinite(pct) ? pct : null };
   }
   indexQuotes = map;
 }
 
-function idxRowHTML(q, opts) {
+function idxRowHTML(q, market) {   // 市场切换标签（报价 + 点击切云图）
   const pct = q.pct, color = idxColor(pct);
   const pctTxt = (pct == null || !isFinite(pct)) ? '—' : fmtPctShort(pct);
   const nmColor = (pct == null || !isFinite(pct)) ? 'var(--text)' : color;   // 名称随涨跌同色
-  const inner = `<span class="n" style="color:${nmColor}">${escapeHtml(opts.label)}</span><span class="sp"></span>` +
+  const inner = `<span class="n" style="color:${nmColor}">${escapeHtml(market.label)}</span><span class="sp"></span>` +
     (q.price != null ? `<span class="p" style="color:${color}">${q.price.toFixed(2)}</span>` : '') +
     `<span class="c" style="color:${color}">${pctTxt}</span>`;
-  if (opts.market) {
-    return `<button type="button" class="idx${state.market === opts.market ? ' on' : ''}" data-market="${opts.market}" title="切换到「${opts.label}」云图">${inner}</button>`;
-  }
-  if (/^(sh|sz|bj)/.test(q.code)) {
-    return `<button type="button" class="idx" data-sym="${q.code.toUpperCase()}" title="${escapeHtml(q.name || opts.label)} · 点击看雪球行情">${inner}</button>`;
-  }
-  return `<div class="idx" title="${escapeHtml(q.name || opts.label)}">${inner}</div>`;
+  return `<button type="button" class="idx${state.market === market.id ? ' on' : ''}" data-market="${market.id}" title="切换到「${market.label}」云图">${inner}</button>`;
 }
 function renderIndices() {
   const el = document.getElementById('indices');
@@ -1214,7 +1220,7 @@ function renderIndices() {
       let pct = q.pct;
       if (pct == null && m.tree && mkt[m.tree] && mkt[m.tree].summary)
         pct = mkt[m.tree].summary.indexChangePct ?? null;   // 腾讯缺价：用市场树自带指数涨跌幅兜底
-      return idxRowHTML({ label: m.label, code: m.idx, price: q.price ?? null, pct }, { market: m.id, label: m.label });
+      return idxRowHTML({ label: m.label, price: q.price ?? null, pct }, m);
     });
   el.innerHTML = `<div class="drw-sub">云图市场</div>` + rows.join('');
 }
@@ -1222,7 +1228,7 @@ function renderIndices() {
 function setMarket(id) {
   if (state.market === id) return;
   state.market = id;
-  state.pinned = null; state.hoverStock = null; state.hoverTitle = null;
+  state.hoverStock = null; state.hoverTitle = null;
   setView({ scale: 1, x: 0, y: 0 });
   buildLayout(); render(); updateCursor(); hideTip();
   renderIndices();
@@ -1233,7 +1239,7 @@ function setMarket(id) {
 /* ================= 左缘侦测（抽屉菜单触发） =================
  * 贴边：鼠标进入画布最左 16px → 打开；离开侦测带（往右）或从左缘滑出窗口 → 关闭；
  * 抽屉展开时鼠标在抽屉内保持打开。钩子：window.onLeftEdgeChange = (open) => {} */
-const LEFT_EDGE_ENTER = 16, LEFT_EDGE_EXIT = 28;
+const LEFT_EDGE_EXIT = 28;   // 抽屉展开时，鼠标越过画布左缘 28px 视为离开抽屉区 → 自动收起
 let leftEdgeActive = false;
 const edgeEl = document.getElementById('edgeLeft');
 const drawerEl = document.getElementById('drawer');
@@ -1255,10 +1261,7 @@ drawerEl.addEventListener('mouseleave', e => {
   setLeftEdge(false);
 });
 // 滑出窗口左缘：documentElement 级 mouseleave（relatedTarget 为 null）
-document.documentElement.addEventListener('mouseleave', e => {
-  if (!e.relatedTarget) setLeftEdge(false);   // 离开窗口：一律收起抽屉与检视器
-  else setLeftEdge(false);
-});
+document.documentElement.addEventListener('mouseleave', () => setLeftEdge(false));
 /* ================= 启动 ================= */
 document.addEventListener('pointerdown', e => {   // 画布与检视器之外的任何按下（鼠标/触摸通吃）：收起抽屉与检视器
   if (tip.contains(e.target)) return;

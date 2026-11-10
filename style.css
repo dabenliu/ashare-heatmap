@@ -31,9 +31,8 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 #cv.grabbing { cursor: grabbing; }
 #cv.pointer { cursor: pointer; }
 
-/* ---------- 左缘侦测带（触屏设备加宽热区，点边缘即可唤出抽屉） ---------- */
+/* ---------- 左缘侦测带（桌面鼠标 hover 唤出；触屏走画布上的左缘滑动手势） ---------- */
 #edgeLeft { position: absolute; left: 0; top: 0; bottom: 0; width: 16px; z-index: 44; cursor: pointer; }
-@media (pointer: coarse) { #edgeLeft { width: 28px; } }
 .drw-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .drw-hd button {
   appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px;
@@ -53,12 +52,10 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .idx:hover { background: #1d2530; }
 .idx.on { background: #2a3546; border-color: rgba(100, 116, 139, 0.5); }
 .idx .n { color: var(--text); font-weight: 600; white-space: nowrap; }
-.idx .sp { flex: 1; }
 .idx .p, .idx .c { font-variant-numeric: tabular-nums; }
 .idx .c { font-weight: 600; }
 
 /* 控制区 */
-.drw-controls { display: flex; flex-direction: column; gap: 8px; }
 .seg { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .seg button { flex: 1; appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; padding: 5px 0; cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--border); }
@@ -136,4 +133,3 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .insp-row .pc { text-align: right; font-size: 11.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .insp-row.active { position: sticky; top: 0; z-index: 1; background: #fff; font-weight: 600; box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08); }
 .insp-row.active .nm { font-weight: 600; color: rgb(15, 23, 42); }
-.insp-empty { flex: 1; display: flex; min-height: 240px; align-items: center; justify-content: center; padding: 24px; text-align: center; font-size: 12px; line-height: 1.6; color: rgb(100, 116, 139); }
