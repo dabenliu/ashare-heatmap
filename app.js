@@ -175,6 +175,7 @@ const state = {
 };
 let cssW = 0, cssH = 0, dpr = 1;
 let L = null;               // 布局结果 {boards, subs, stocks}
+const TOUCH_ENV = window.matchMedia('(pointer: coarse)').matches;   // 触屏设备：无悬停弹窗，弹窗仅点按产生
 
 /* 面积口径（原站 rB：非正数钳到 1，保证停牌/零值股有最小面积） */
 function modeValue(stock) {
@@ -612,6 +613,7 @@ function updateCursor() {
 }
 
 function handleHover(e) {
+  if (TOUCH_ENV) return;   // 触屏无悬停概念：弹窗仅由点按个股产生，兼容合成鼠标事件不驱动浮窗
   const { mx, my } = canvasPos(e);
   if (leftEdgeActive && mx > LEFT_EDGE_EXIT) setLeftEdge(false);   // 鼠标移入画布深处，抽屉自动收起
   const w = screenToWorld(mx, my);
@@ -625,9 +627,8 @@ function handleHover(e) {
     render(); updateCursor();
   }
   if (state.inspPinned) return;   // 固定时内容冻结
-  let g = null;
-  if (stock) g = findGroupFor(stock.stock);
-  else if (title) g = findGroupForTitle(title);
+  if (!stock) { hideTip(); return; }
+  const g = findGroupFor(stock.stock);
   if (g) showInspector(g, stock);
   else hideTip();
 }
@@ -769,11 +770,6 @@ function findGroupFor(st) {
   for (const s of L.subs) if (s.boardName === st.boardName && s.name === st.subBoardName) return { kind: 'sub', w: s };
   for (const b of L.boards) if (b.name === st.boardName) return { kind: 'board', w: b };
   return null;
-}
-function findGroupForTitle(t) {
-  if (t.kind === 'board') { const b = L.boards.find(x => x.name === t.name); return b ? { kind: 'board', w: b } : null; }
-  const s = L.subs.find(x => x.name === t.name && x.boardName === t.boardName);
-  return s ? { kind: 'sub', w: s } : null;
 }
 function groupListOf(g) { return (g.kind === 'sub' ? g.w._list : g.w._kids) || []; }
 function sinaKline(code) {   // 新浪日K图：002466.SZ → sz002466
