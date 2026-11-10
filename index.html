@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>A股热力图</title>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 <aside id="drawer" aria-label="抽屉菜单">
@@ -19,7 +19,15 @@
         <button data-mode="turnover">成交额</button>
       </div>
     </div>
-    <div id="drawerContent" class="drw-body"></div>
+    <div id="drawerContent" class="drw-body">
+      <div class="flow-sec">
+        <div class="flow-hd"><span>板块资金流</span><button id="flowRefresh" type="button" title="刷新板块资金流">↻</button></div>
+        <div class="flow-cols">
+          <div class="flow-col"><div class="flow-sub up">净流入</div><div class="flow-list" id="flowIn"></div></div>
+          <div class="flow-col"><div class="flow-sub down">净流出</div><div class="flow-list" id="flowOut"></div></div>
+        </div>
+      </div>
+    </div>
     <div class="drw-sec drw-summary">
       <div class="stat-tbl" id="counts"></div>
       <div class="legend" aria-hidden="true">
@@ -37,6 +45,6 @@
   <div id="tip" hidden></div>
 </main>
 <script src="data/treemap.js?v=13"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

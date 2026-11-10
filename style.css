@@ -90,6 +90,23 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .st b.flat { color: var(--muted); }
 .updated { color: var(--muted); font-size: 11px; }
 
+/* ---------- 板块资金流（抽屉中部自适应区：双列排行，金额颜色随强度走色卡） ---------- */
+.flow-sec { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.flow-hd { display: flex; align-items: center; justify-content: space-between; padding: 2px 0 6px; flex-shrink: 0; }
+.flow-hd span { font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); }
+.flow-hd button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 1px 7px; border-radius: 5px; cursor: pointer; }
+.flow-hd button:hover { background: #1d2530; color: var(--text); }
+.flow-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.flow-col { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.02); }
+.flow-sub { flex-shrink: 0; text-align: center; font-size: 10.5px; font-weight: 600; padding: 3px 0; background: rgba(255, 255, 255, 0.03); }
+.flow-sub.up { color: #ff6b66; }
+.flow-sub.down { color: #35d97a; }
+.flow-list { flex: 1; min-height: 0; overflow-y: auto; }
+.flow-row { display: flex; align-items: baseline; gap: 6px; padding: 2.5px 8px; font-size: 11.5px; line-height: 1.5; }
+.flow-row + .flow-row { border-top: 1px solid rgba(42, 51, 65, 0.5); }
+.flow-row .fn { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.flow-row .fv { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 /* ---------- 检视器（dapanyuntu n8 同款：深色个股头部条 + 白底日K区 + 浅灰成分列表） ---------- */
 #tip[hidden] { display: none !important; }
 #tip {

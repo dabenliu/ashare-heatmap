@@ -1239,6 +1239,45 @@ function setMarket(id) {
   refreshQuotes();   // 切换后立即拉一轮新市场行情（busy 时自动跳过，等下一轮）
 }
 
+/* ---- 板块资金流（东财 push2：行业板块主力净流入排行，双列 净流入/净流出） ----
+ * 免费接口克制使用：启动拉一次；交易时段且抽屉展开时每 60s 刷新；↻ 手动强制。
+ * 金额颜色 = 主力净占比（f184，±10% 钳 1）映射到 score 色卡：流入偏红、流出偏绿。 */
+const FLOW_BASE = 'https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=100&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=f14,f62,f184';
+let flowData = null;   // {in:[{name,amt,pct}], out:[...]}
+let flowBusy = false;
+
+async function fetchFlow() {
+  if (flowBusy) return;
+  flowBusy = true;
+  try {
+    const parse = r => r.json().then(d => (d.data?.diff || []).map(x => ({ name: x.f14, amt: x.f62, pct: x.f184 })));
+    const [inArr, outArr] = await Promise.all([
+      fetch(FLOW_BASE + '&po=1', { signal: AbortSignal.timeout(8000) }).then(parse),
+      fetch(FLOW_BASE + '&po=0', { signal: AbortSignal.timeout(8000) }).then(parse),
+    ]);
+    flowData = { in: inArr.slice(0, 20), out: outArr.slice(0, 20) };
+    renderFlow();
+  } catch { /* 拉取失败：保留上次内容 */ } finally { flowBusy = false; }
+}
+function flowRowHTML(r) {
+  const score = clamp((r.pct ?? 0) / 10, -1, 1);
+  const col = Math.abs(r.pct ?? 0) < 0.05 ? 'var(--muted)' : bandColorOf(score);
+  const sign = r.amt > 0 ? '+' : (r.amt < 0 ? '-' : '');
+  return `<div class="flow-row"><span class="fn">${escapeHtml(r.name)}</span>` +
+    `<b class="fv" style="color:${col}">${sign}${fmtAmount(Math.abs(r.amt))}</b></div>`;
+}
+function renderFlow() {
+  if (!flowData) return;
+  const fill = (el, rows) => {
+    el.innerHTML = rows.length ? rows.map(flowRowHTML).join('')
+      : '<div class="flow-row"><span class="fn" style="color:var(--muted)">—</span></div>';
+  };
+  fill(document.getElementById('flowIn'), flowData.in);
+  fill(document.getElementById('flowOut'), flowData.out);
+}
+document.getElementById('flowRefresh').addEventListener('click', () => fetchFlow());
+setInterval(() => { if (leftEdgeActive && inTradingHours()) fetchFlow(); }, 60000);
+
 /* ================= 左缘侦测（抽屉菜单触发） =================
  * 贴边：鼠标进入画布最左 16px → 打开；离开侦测带（往右）或从左缘滑出窗口 → 关闭；
  * 抽屉展开时鼠标在抽屉内保持打开。钩子：window.onLeftEdgeChange = (open) => {} */
@@ -1308,4 +1347,5 @@ const touchLike = window.matchMedia('(pointer: coarse)').matches || window.inner
 document.body.classList.toggle('drawer-open', !touchLike);
 leftEdgeActive = !touchLike;
 startLive();
+fetchFlow();   // 板块资金流首拉（之后 60s 节流/手动刷新）
 })();
