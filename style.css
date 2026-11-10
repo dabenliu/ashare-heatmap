@@ -40,7 +40,7 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 }
 .drw-hd button:hover { background: #1d2530; color: var(--text); }
 .drw-sec { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.drw-body { flex: 1; overflow-y: auto; min-height: 0; padding: 10px 14px; }
+.drw-body { flex: 1; overflow-y: auto; min-height: 0; padding: 10px 14px 5px; }
 
 /* 市场切换竖排行（标签多时自身滚动，防止挤压下方控件） */
 #indices { display: flex; flex-direction: column; gap: 2px; max-height: 46vh; overflow-y: auto; }
@@ -62,8 +62,8 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .seg button.on { background: #232c3a; color: var(--text); }
 .seg button:hover { background: #1d2530; }
 
-/* 摘要区（沉底三模块，间距加大） */
-.drw-summary { display: flex; flex-direction: column; gap: 12px; }
+/* 摘要区（沉底三模块，间距加大；顶部 5px 与资金流面板合计 10px 间距） */
+.drw-summary { display: flex; flex-direction: column; gap: 12px; padding-top: 5px; }
 .legend { display: flex; align-items: center; gap: 6px; }
 .legend .arrow { font-size: 10px; }
 .legend .fall { color: #35d97a; }
