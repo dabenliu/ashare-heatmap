@@ -600,6 +600,10 @@ tip.addEventListener('mouseleave', e => {
   if (e.relatedTarget === cv || cv.contains(e.relatedTarget)) return;   // 回到画布，交给 handleHover
   clearHover();                                                    // 回到页面其它区域
 });
+/* 窗口/标签页失去焦点（点其他 app、切标签、切后台）：收起非固定的悬停弹窗。
+ * 只在整窗失焦时触发，页面内任何点击都不受影响；固定弹窗保留（主动固定=刻意保持）。 */
+window.addEventListener('blur', () => { if (!state.inspPinned) hideTip(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !state.inspPinned) hideTip(); });
 
 function clearHover() {
   let dirty = false;
