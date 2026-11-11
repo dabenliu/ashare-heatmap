@@ -88,7 +88,13 @@ body.drawer-open #drawer { width: 232px; box-shadow: 12px 0 32px rgba(0, 0, 0, 0
 .st b.up { color: #ff6b66; }
 .st b.down { color: #35d97a; }
 .st b.flat { color: var(--muted); }
-.updated { color: var(--muted); font-size: 11px; }
+.updated-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.updated-row button {
+  appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px;
+  padding: 2px 8px; border-radius: 6px; cursor: pointer; flex-shrink: 0;
+}
+.updated-row button:hover { background: #1d2530; color: var(--text); }
+.updated { color: var(--muted); font-size: 11px; min-width: 0; }
 
 /* ---------- 板块资金流（抽屉中部自适应区：双列排行，金额颜色随强度走色卡） ---------- */
 .flow-sec { height: 100%; display: flex; flex-direction: column; min-height: 0; }

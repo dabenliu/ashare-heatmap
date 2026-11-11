@@ -1130,6 +1130,23 @@ function resetView() {   // Esc 触发（重置/全屏按钮已按需求移除�
   buildLayout(); render(); hideTip();
 }
 document.getElementById('drawerClose').addEventListener('click', () => setLeftEdge(false));   // 抽屉头部 ✕：触屏无键盘也能收
+/* 截图按钮：导出云图画布为 PNG。画布从未绘制外链图片（未被污染），toBlob/toDataURL 在 file:// 下可直接用；
+ * 检视器/抽屉是 DOM，不进本截图（如需整窗合成需另行绘制）。
+ * 优先走 blob URL——Safari/WebKit 对 data: URL 的 download 支持不稳；toBlob 失败再回落 data: URL。 */
+document.getElementById('shotBtn').addEventListener('click', () => {
+  const pad = n => String(n).padStart(2, '0');
+  const d = new Date();
+  const ts = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  const mk = MARKETS.find(m => m.id === state.market) || MARKETS[0];
+  const save = (href, isBlob) => {
+    const a = document.createElement('a');
+    a.download = 'A股热力图-' + mk.label + '-' + ts + '.png';
+    a.href = href;
+    a.click();
+    if (isBlob) setTimeout(() => URL.revokeObjectURL(href), 10000);   // 立即撤销会掐断下载，留足时间
+  };
+  cv.toBlob(b => b ? save(URL.createObjectURL(b), true) : save(cv.toDataURL('image/png'), false), 'image/png');
+});
 window.addEventListener('keydown', e => {
   const tag = e.target && e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
