@@ -82,6 +82,12 @@ function publish(session) {
   return true;
 }
 
+/* 每源独立节奏：东财原前端就是 60s 一次——10s 一次会被它限流封 IP（2026-11-12 实测被封）。
+ * 失败则指数退避（30s → 最多 10 分钟），成功清零。 */
+const SOURCE_MIN_INTERVAL_MS = { flow: 60_000 };
+const nextAt = {}, failStreak = {};
+const SKIP = Symbol('skip');
+
 async function refreshOnce() {
   const t0 = Date.now();
   const session = inTradingHours() ? 'trading' : 'closed';
@@ -96,12 +102,16 @@ async function refreshOnce() {
     ['flow',   () => fetchFlow()],
     ['idx',    () => fetchIndices(INDEX_CODES)],
   ];
-  const settled = await Promise.allSettled(defs.map(([, fn]) => fn()));
+  const settled = await Promise.allSettled(defs.map(([name, fn]) => {
+    if (nextAt[name] > Date.now()) return SKIP;
+    return fn();
+  }));
 
   const marks = [];
   settled.forEach((r, i) => {
     const [name] = defs[i];
     const ms = Date.now() - t0;
+    if (r.status === 'fulfilled' && r.value === SKIP) { marks.push(name + '·'); return; }
     if (r.status === 'fulfilled') {
       const v = r.value;
       if (name === 'jrj') cache.jrj = v;
@@ -115,10 +125,15 @@ async function refreshOnce() {
         : name === 'flow' ? (v.in?.length ?? 0) + (v.out?.length ?? 0)
         : Object.keys(v).length;
       status[name] = { ok: true, ms, count };
+      failStreak[name] = 0;
+      nextAt[name] = SOURCE_MIN_INTERVAL_MS[name] ? Date.now() + SOURCE_MIN_INTERVAL_MS[name] : 0;
       marks.push(`${name}✓`);
     } else {
       stats.fails++;
-      status[name] = { ok: false, ms, error: String(r.reason?.message ?? r.reason) };
+      failStreak[name] = (failStreak[name] ?? 0) + 1;
+      const wait = Math.min(30_000 * 2 ** (failStreak[name] - 1), 600_000);
+      nextAt[name] = Date.now() + wait;                  // 退避：别继续硬撞
+      status[name] = { ok: false, ms, error: String(r.reason?.message ?? r.reason), retryInSec: Math.round(wait / 1000) };
       marks.push(`${name}✗`);
     }
   });
