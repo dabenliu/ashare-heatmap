@@ -1,0 +1,14 @@
+{
+  "name": "heatmap-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "行情中转服务：共享缓存 + 单请求快照（heatmap 项目的服务端）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

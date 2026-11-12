@@ -1,0 +1,28 @@
+# 安装：sudo cp /srv/heatmap/server/deploy/heatmap-api.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now heatmap-api
+# 日志：journalctl -u heatmap-api -f
+# 改完代码：cd /srv/heatmap && git pull && systemctl restart heatmap-api
+[Unit]
+Description=heatmap-api 行情中转服务(共享缓存 + 单请求快照)
+Documentation=file:///srv/heatmap/server/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/heatmap/server
+Environment=PORT=8787
+Environment=HOST=127.0.0.1
+Environment=DATA_DIR=/srv/heatmap/data
+Environment=TRADING_INTERVAL_MS=10000
+Environment=IDLE_INTERVAL_MS=300000
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+MemoryMax=512M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=heatmap-api
+
+[Install]
+WantedBy=multi-user.target
