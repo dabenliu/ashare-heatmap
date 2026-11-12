@@ -14,6 +14,7 @@
 
 import http from 'node:http';
 import zlib from 'node:zlib';
+import { readFileSync } from 'node:fs';
 import { loadUniverse, treeSignature, universeCounts } from './lib/universe.js';
 import { fetchJrj, fetchTencent, fetchIndices, fetchTurnover, fetchFlow } from './lib/sources.js';
 
@@ -37,6 +38,24 @@ function countEgress(n) {
   const day = localDay();
   if (egress.day !== day) { egress.day = day; egress.dayBytes = 0; }
   egress.dayBytes += n; egress.total += n;
+}
+
+/* 流量保险丝(deploy/traffic-guard.sh)写的状态,转发到 /health 里方便随时看 */
+const TRAFFIC_STATE = '/var/lib/heatmap-traffic/state.env';
+function trafficState() {
+  try {
+    const o = {};
+    for (const line of readFileSync(TRAFFIC_STATE, 'utf8').split('\n')) {
+      const i = line.indexOf('=');
+      if (i > 0) o[line.slice(0, i)] = line.slice(i + 1);
+    }
+    return {
+      monthUsedMB: +o.usedMB || 0, limitMB: +o.limitMB || null,
+      warnMB: +o.warnMB || null, stopMB: +o.stopMB || null,
+      stopped: o.stopped === '1', action: o.action || null, iface: o.iface || null,
+      updatedAgoSec: o.at ? Math.round(Date.now() / 1000 - +o.at) : null,
+    };
+  } catch { return null; }
 }
 
 let universe = null, universeSig = '';
@@ -203,6 +222,7 @@ const server = http.createServer((req, res) => {
         day: egress.day,
         note: '只计对外响应体；上游抓取约 51KB/轮（全量）另算',
       },
+      traffic: trafficState(),   // 流量保险丝状态(月出网用量/是否熔断);未装保险丝时为 null
       universe: universe ? universeCounts(universe) : null,
       data: {
         all: Object.keys(cache.jrj).length + Object.keys(cache.bj).length,

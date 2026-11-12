@@ -1,0 +1,10 @@
+[Unit]
+Description=每分钟运行 heatmap 流量保险丝
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

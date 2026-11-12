@@ -1,0 +1,10 @@
+# 安装：sudo cp /srv/heatmap/server/deploy/heatmap-traffic-guard.* /etc/systemd/system/
+#       sudo cp /srv/heatmap/server/deploy/traffic-guard.conf.example /etc/heatmap-traffic-guard.conf
+#       sudo systemctl daemon-reload && sudo systemctl enable --now heatmap-traffic-guard.timer
+# 查看：journalctl -t heatmap-guard -f
+[Unit]
+Description=heatmap 流量保险丝(统计出网字节,接近上限停止服务)
+
+[Service]
+Type=oneshot
+ExecStart=/srv/heatmap/server/deploy/traffic-guard.sh

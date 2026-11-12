@@ -92,6 +92,27 @@ systemctl enable --now heatmap-api
 - 阿里云控制台 → 费用与成本 → **设流量包/消费预警**（官方兜底，必设）
 - 大文件（treemap.js 2.4MB 等静态资源）**不放服务器出**，继续走 GitHub Pages 免费 CDN
 
+## 流量保险丝（防欠费）
+
+`deploy/traffic-guard.sh` 由 systemd 定时器**每分钟**跑一次：统计主网卡出网字节，
+累计到 `WARN_MB`(默认 18G) 刷警告日志，到 `STOP_MB`(默认 **19.5G**) 就停掉
+`STOP_UNITS`(默认 `heatmap-api hbrclient`)——**宁可服务停,也不超流量包**。
+新月自动清零并恢复服务。
+
+```bash
+journalctl -t heatmap-guard -f                  # 看保险丝日志
+cat /var/lib/heatmap-traffic/state.env          # 当前状态(月用量/是否熔断)
+# /health 里的 traffic 字段 = 同一个状态,转发过来的
+sudo vi /etc/heatmap-traffic-guard.conf         # 改线(限值/停止名单),改完 ≤1 分钟生效
+```
+
+注意:
+- 计数取 `/proc/net/dev` 的 tx,**是保守上界**（阿里云内网流量如 100.100.x.x 不计费，这里也算进去了）
+  → 只会更早熔断,不会更晚
+- 重启会让计数器归零,脚本按"从开机起"近似补记
+- 装好后建议把控制台当前已用量填进 `ALREADY_USED_MB` 校准一次
+- **权威数字仍在控制台的流量监控/账单**;控制台的流量包预警要同时设上(双保险)
+
 ## 已知取舍 / 下一步
 
 - **快照体积**：全量 280KB → gzip 86KB。现在只有 304 和"内容变了才换 seq"两道机制省流量；
