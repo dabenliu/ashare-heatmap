@@ -925,7 +925,8 @@ async function fetchQtQuotes(codes, mode = 'bj') {   // 腾讯批量：bj/etf= s
     if (!res.ok) throw new Error('qt ' + res.status);
     const text = new TextDecoder('gbk').decode(await res.arrayBuffer());
     for (const line of text.split(';')) {
-      const m = mode === 'hk' ? /^v_hk(\d+)="([^"]*)"/.exec(line) : /^v_s_([a-z]{2})(\d+)="([^"]*)"/.exec(line);
+      const s = line.trim();   // 响应以 ";\n" 分隔，第二行起带换行符——不 trim 会被 ^ 锚定跳过（只解析出每批第 1 条）
+      const m = mode === 'hk' ? /^v_hk(\d+)="([^"]*)"/.exec(s) : /^v_s_([a-z]{2})(\d+)="([^"]*)"/.exec(s);
       if (!m) continue;
       const code = mode === 'hk' ? m[1] + '.HK' : m[2] + '.' + m[1].toUpperCase();
       const f = (mode === 'hk' ? m[2] : m[3]).split('~');
